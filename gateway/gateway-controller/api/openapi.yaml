@@ -846,6 +846,8 @@ components:
             - async/websub
             - async/websocket
             - async/sse
+        metadata:
+          $ref: "#/components/schemas/Metadata"
         spec:
           description: API configuration payload (REST or Async API variants)
           oneOf:
@@ -856,6 +858,16 @@ components:
             mapping:
               http/rest: '#/components/schemas/APIConfigData'
               async/websub: '#/components/schemas/WebhookAPIData'
+
+    Metadata:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Unique identifier for the resource
+          example: weather-api-v1.0
 
     APIConfigData:
       type: object
