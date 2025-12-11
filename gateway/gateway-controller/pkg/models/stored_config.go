@@ -79,6 +79,14 @@ func (c *StoredConfig) GetName() string {
 	return configData.Name
 }
 
+// GetIdentifier returns the API identifier from metadata.name
+func (c *StoredConfig) GetIdentifier() string {
+	if c.Configuration.Metadata != nil {
+		return c.Configuration.Metadata.Name
+	}
+	return ""
+}
+
 // GetVersion returns the API version
 func (c *StoredConfig) GetVersion() string {
 	if c.Configuration.Kind == "async/websub" {

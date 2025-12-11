@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS deployments (
     version TEXT NOT NULL,
     context TEXT NOT NULL,              -- Base path (e.g., "/weather")
     kind TEXT NOT NULL,                 -- Deployment type: "http/rest", "graphql", "grpc", "asyncapi"
+    identifier TEXT,                    -- API identifier from metadata.name in YAML
 
     -- Deployment status
     status TEXT NOT NULL CHECK(status IN ('pending', 'deployed', 'failed')),
@@ -83,5 +84,5 @@ CREATE TABLE IF NOT EXISTS deployment_configs (
     FOREIGN KEY(id) REFERENCES deployments(id) ON DELETE CASCADE
 );
 
--- Set schema version to 3
-PRAGMA user_version = 3;
+-- Set schema version to 4
+PRAGMA user_version = 4;

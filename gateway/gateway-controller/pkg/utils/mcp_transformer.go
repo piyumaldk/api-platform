@@ -81,6 +81,8 @@ func (t *MCPTransformer) Transform(input any, output *api.APIConfiguration) *api
 	}
 	output.Version = api.ApiPlatformWso2Comv1
 	output.Kind = api.APIConfigurationKindHttprest
+	// Copy metadata from MCP config to API config
+	output.Metadata = mcpConfig.Metadata
 	// Build APIConfigData and set it into the APIConfiguration_Spec union
 	apiData := api.APIConfigData{
 		Name:       mcpConfig.Spec.Name,

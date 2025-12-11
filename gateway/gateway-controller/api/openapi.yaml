@@ -1360,6 +1360,8 @@ components:
           example: mcp
           enum:
             - mcp
+        metadata:
+          $ref: "#/components/schemas/Metadata"
         spec:
           $ref: "#/components/schemas/MCPProxyConfigData"
 

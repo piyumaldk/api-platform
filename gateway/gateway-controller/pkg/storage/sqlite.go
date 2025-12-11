@@ -148,6 +148,18 @@ func (s *SQLiteStorage) initSchema() error {
 			version = 3
 		}
 
+		if version == 3 {
+			// Add identifier column to deployments table
+			if _, err := s.db.Exec(`ALTER TABLE deployments ADD COLUMN identifier TEXT;`); err != nil {
+				return fmt.Errorf("failed to migrate schema to version 4 (identifier column): %w", err)
+			}
+			if _, err := s.db.Exec("PRAGMA user_version = 4"); err != nil {
+				return fmt.Errorf("failed to set schema version to 4: %w", err)
+			}
+			s.logger.Info("Schema migrated to version 4 (identifier column)")
+			version = 4
+		}
+
 		s.logger.Info("Database schema up to date", zap.Int("version", version))
 	}
 
@@ -160,12 +172,13 @@ func (s *SQLiteStorage) SaveConfig(cfg *models.StoredConfig) error {
 	name := cfg.GetName()
 	version := cfg.GetVersion()
 	context := cfg.GetContext()
+	identifier := cfg.GetIdentifier()
 
 	query := `
 		INSERT INTO deployments (
-			id, name, version, context, kind,
+			id, name, version, context, kind, identifier,
 			status, created_at, updated_at, deployed_version
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	stmt, err := s.db.Prepare(query)
@@ -181,6 +194,7 @@ func (s *SQLiteStorage) SaveConfig(cfg *models.StoredConfig) error {
 		version,
 		context,
 		cfg.Kind,
+		identifier,
 		cfg.Status,
 		now,
 		now,
@@ -223,10 +237,11 @@ func (s *SQLiteStorage) UpdateConfig(cfg *models.StoredConfig) error {
 	name := cfg.GetName()
 	version := cfg.GetVersion()
 	context := cfg.GetContext()
+	identifier := cfg.GetIdentifier()
 
 	query := `
 		UPDATE deployments
-		SET name = ?, version = ?, context = ?, kind = ?,
+		SET name = ?, version = ?, context = ?, kind = ?, identifier = ?,
 			status = ?, updated_at = ?,
 			deployed_version = ?
 		WHERE id = ?
@@ -243,6 +258,7 @@ func (s *SQLiteStorage) UpdateConfig(cfg *models.StoredConfig) error {
 		version,
 		context,
 		cfg.Kind,
+		identifier,
 		cfg.Status,
 		time.Now(),
 		cfg.DeployedVersion,

@@ -35,8 +35,7 @@ func NewParser() *Parser {
 }
 
 func (p *Parser) ParseYAML(data []byte, configParsed interface{}) error {
-	var config api.APIConfiguration
-	// Marshal the map to JSON to leverage json.RawMessage handling in union types
+	// Marshal the YAML to a generic map first so we can reuse JSON unmarshalling
 	var intermediate map[string]interface{}
 	if err := yaml.Unmarshal(data, &intermediate); err != nil {
 		return fmt.Errorf("failed to unmarshal YAML: %w", err)
@@ -45,16 +44,26 @@ func (p *Parser) ParseYAML(data []byte, configParsed interface{}) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal intermediate to JSON: %w", err)
 	}
-	if err := json.Unmarshal(jsonBytes, &config); err != nil {
-		return fmt.Errorf("failed to unmarshal JSON into APIConfiguration: %w", err)
+
+	// Decide target type based on the dynamic type of configParsed
+	switch ptr := configParsed.(type) {
+	case *api.APIConfiguration:
+		var cfg api.APIConfiguration
+		if err := json.Unmarshal(jsonBytes, &cfg); err != nil {
+			return fmt.Errorf("failed to unmarshal JSON into APIConfiguration: %w", err)
+		}
+		*ptr = cfg
+		return nil
+	case *api.MCPProxyConfiguration:
+		var cfg api.MCPProxyConfiguration
+		if err := json.Unmarshal(jsonBytes, &cfg); err != nil {
+			return fmt.Errorf("failed to unmarshal JSON into MCPProxyConfiguration: %w", err)
+		}
+		*ptr = cfg
+		return nil
+	default:
+		return fmt.Errorf("unsupported configParsed type %T; expected *api.APIConfiguration or *api.MCPProxyConfiguration", configParsed)
 	}
-	// Assign parsed config to the value pointed by configParsed (interface{})
-	if ptr, ok := configParsed.(*api.APIConfiguration); ok {
-		*ptr = config
-	} else {
-		return fmt.Errorf("configParsed is not of type *api.APIConfiguration")
-	}
-	return nil
 }
 
 // ParseJSON parses JSON content into an API configuration
