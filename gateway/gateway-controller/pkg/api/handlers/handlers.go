@@ -249,6 +249,60 @@ func (s *APIServer) ListAPIs(c *gin.Context) {
 	})
 }
 
+// SearchAPIs performs a search when query params are provided.
+func (s *APIServer) SearchAPIs(c *gin.Context) {
+	filterKeys := []string{"name", "version", "context", "identifier", "status"}
+	filters := make(map[string]string)
+	for _, k := range filterKeys {
+		if v := c.Query(k); v != "" {
+			filters[k] = v
+		}
+	}
+
+	filters["kind"] = string(api.APIConfigurationKindHttprest)
+
+	var items []api.APIListItem
+
+	if s.store != nil {
+		configs := s.store.GetAllByKind(string(api.APIConfigurationKindHttprest))
+		for _, cfg := range configs {
+			if v, ok := filters["name"]; ok && cfg.GetName() != v {
+				continue
+			}
+			if v, ok := filters["version"]; ok && cfg.GetVersion() != v {
+				continue
+			}
+			if v, ok := filters["context"]; ok && cfg.GetContext() != v {
+				continue
+			}
+			if v, ok := filters["identifier"]; ok && cfg.GetIdentifier() != v {
+				continue
+			}
+			if v, ok := filters["status"]; ok && string(cfg.Status) != v {
+				continue
+			}
+
+			id, _ := uuidToOpenAPIUUID(cfg.ID)
+			status := string(cfg.Status)
+			items = append(items, api.APIListItem{
+				Id:        id,
+				Name:      stringPtr(cfg.GetName()),
+				Version:   stringPtr(cfg.GetVersion()),
+				Context:   stringPtr(cfg.GetContext()),
+				Status:    (*api.APIListItemStatus)(&status),
+				CreatedAt: timePtr(cfg.CreatedAt),
+				UpdatedAt: timePtr(cfg.UpdatedAt),
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"count":  len(items),
+		"apis":   items,
+	})
+}
+
 // GetAPIByNameVersion implements ServerInterface.GetAPIByNameVersion
 // (GET /apis/{name}/{version})
 func (s *APIServer) GetAPIByNameVersion(c *gin.Context, name string, version string) {

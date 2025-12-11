@@ -822,6 +822,14 @@ func (siw *ServerInterfaceWrapper) ListAPIs(c *gin.Context) {
 		}
 	}
 
+	// ListAPIs if search parameters are not present
+	if c.Query("name") != "" || c.Query("version") != "" || c.Query("context") != "" || c.Query("identifier") != "" || c.Query("status") != "" {
+		if h, ok := siw.Handler.(interface{ SearchAPIs(*gin.Context) }); ok {
+			h.SearchAPIs(c)
+			return
+		}
+	}
+
 	siw.Handler.ListAPIs(c)
 }
 
