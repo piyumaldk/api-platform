@@ -261,7 +261,6 @@ func (s *APIServer) ListAPIs(c *gin.Context) {
 	})
 }
 
-// SearchAPIs performs a search when query params are provided.
 func (s *APIServer) SearchAPIs(c *gin.Context) {
 	filterKeys := []string{"name", "version", "context", "identifier", "status"}
 	filters := make(map[string]string)
@@ -999,6 +998,10 @@ func (s *APIServer) CreateMCPProxy(c *gin.Context) {
 // ListMCPProxies implements ServerInterface.ListMCPProxies
 // (GET /mcp-proxies)
 func (s *APIServer) ListMCPProxies(c *gin.Context) {
+	if c.Query("name") != "" || c.Query("version") != "" || c.Query("context") != "" || c.Query("identifier") != "" || c.Query("status") != "" {
+		s.SearchMCPProxies(c)
+		return
+	}
 	configs := s.store.GetAllByKind(string(api.Mcp))
 
 	items := make([]api.MCPProxyListItem, len(configs))
@@ -1028,6 +1031,60 @@ func (s *APIServer) ListMCPProxies(c *gin.Context) {
 			Status:     &status,
 			CreatedAt:  timePtr(cfg.CreatedAt),
 			UpdatedAt:  timePtr(cfg.UpdatedAt),
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":      "success",
+		"count":       len(items),
+		"mcp_proxies": items,
+	})
+}
+
+func (s *APIServer) SearchMCPProxies(c *gin.Context) {
+	filterKeys := []string{"name", "version", "context", "identifier", "status"}
+	filters := make(map[string]string)
+	for _, k := range filterKeys {
+		if v := c.Query(k); v != "" {
+			filters[k] = v
+		}
+	}
+
+	filters["kind"] = string(api.Mcp)
+
+	var items []api.MCPProxyListItem
+
+	if s.store != nil {
+		configs := s.store.GetAllByKind(string(api.Mcp))
+		for _, cfg := range configs {
+			if v, ok := filters["name"]; ok && cfg.GetName() != v {
+				continue
+			}
+			if v, ok := filters["version"]; ok && cfg.GetVersion() != v {
+				continue
+			}
+			if v, ok := filters["context"]; ok && cfg.GetContext() != v {
+				continue
+			}
+			if v, ok := filters["identifier"]; ok && cfg.GetIdentifier() != v {
+				continue
+			}
+			if v, ok := filters["status"]; ok && string(cfg.Status) != v {
+				continue
+			}
+
+			id, _ := uuidToOpenAPIUUID(cfg.ID)
+			status := api.MCPProxyListItemStatus(cfg.Status)
+			items = append(items, api.MCPProxyListItem{
+				Id:         id,
+				Identifier: stringPtr(cfg.GetIdentifier()),
+				Name:       stringPtr(cfg.GetName()),
+				Version:    stringPtr(cfg.GetVersion()),
+				Context:    stringPtr(cfg.GetContext()),
+				Status:     &status,
+				CreatedAt:  timePtr(cfg.CreatedAt),
+				UpdatedAt:  timePtr(cfg.UpdatedAt),
+			})
 		}
 	}
 
