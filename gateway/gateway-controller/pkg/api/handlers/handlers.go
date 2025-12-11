@@ -232,6 +232,10 @@ func (s *APIServer) CreateAPI(c *gin.Context) {
 // ListAPIs implements ServerInterface.ListAPIs
 // (GET /apis)
 func (s *APIServer) ListAPIs(c *gin.Context) {
+	if c.Query("name") != "" || c.Query("version") != "" || c.Query("context") != "" || c.Query("identifier") != "" || c.Query("status") != "" {
+		s.SearchAPIs(c)
+		return
+	}
 	configs := s.store.GetAllByKind(string(api.APIConfigurationKindHttprest))
 
 	items := make([]api.APIListItem, 0, len(configs))
@@ -239,13 +243,14 @@ func (s *APIServer) ListAPIs(c *gin.Context) {
 		id, _ := uuidToOpenAPIUUID(cfg.ID)
 		status := string(cfg.Status)
 		items = append(items, api.APIListItem{
-			Id:        id,
-			Name:      stringPtr(cfg.GetName()),
-			Version:   stringPtr(cfg.GetVersion()),
-			Context:   stringPtr(cfg.GetContext()),
-			Status:    (*api.APIListItemStatus)(&status),
-			CreatedAt: timePtr(cfg.CreatedAt),
-			UpdatedAt: timePtr(cfg.UpdatedAt),
+			Id:         id,
+			Identifier: stringPtr(cfg.GetIdentifier()),
+			Name:       stringPtr(cfg.GetName()),
+			Version:    stringPtr(cfg.GetVersion()),
+			Context:    stringPtr(cfg.GetContext()),
+			Status:     (*api.APIListItemStatus)(&status),
+			CreatedAt:  timePtr(cfg.CreatedAt),
+			UpdatedAt:  timePtr(cfg.UpdatedAt),
 		})
 	}
 
@@ -292,13 +297,14 @@ func (s *APIServer) SearchAPIs(c *gin.Context) {
 			id, _ := uuidToOpenAPIUUID(cfg.ID)
 			status := string(cfg.Status)
 			items = append(items, api.APIListItem{
-				Id:        id,
-				Name:      stringPtr(cfg.GetName()),
-				Version:   stringPtr(cfg.GetVersion()),
-				Context:   stringPtr(cfg.GetContext()),
-				Status:    (*api.APIListItemStatus)(&status),
-				CreatedAt: timePtr(cfg.CreatedAt),
-				UpdatedAt: timePtr(cfg.UpdatedAt),
+				Id:         id,
+				Identifier: stringPtr(cfg.GetIdentifier()),
+				Name:       stringPtr(cfg.GetName()),
+				Version:    stringPtr(cfg.GetVersion()),
+				Context:    stringPtr(cfg.GetContext()),
+				Status:     (*api.APIListItemStatus)(&status),
+				CreatedAt:  timePtr(cfg.CreatedAt),
+				UpdatedAt:  timePtr(cfg.UpdatedAt),
 			})
 		}
 	}
@@ -1014,13 +1020,14 @@ func (s *APIServer) ListMCPProxies(c *gin.Context) {
 			return
 		}
 		items[i] = api.MCPProxyListItem{
-			Id:        id,
-			Name:      stringPtr(mcp.Spec.Name),
-			Version:   stringPtr(mcp.Spec.Version),
-			Context:   stringPtr(mcp.Spec.Context),
-			Status:    &status,
-			CreatedAt: timePtr(cfg.CreatedAt),
-			UpdatedAt: timePtr(cfg.UpdatedAt),
+			Id:         id,
+			Identifier: stringPtr(cfg.GetIdentifier()),
+			Name:       stringPtr(mcp.Spec.Name),
+			Version:    stringPtr(mcp.Spec.Version),
+			Context:    stringPtr(mcp.Spec.Context),
+			Status:     &status,
+			CreatedAt:  timePtr(cfg.CreatedAt),
+			UpdatedAt:  timePtr(cfg.UpdatedAt),
 		}
 	}
 
