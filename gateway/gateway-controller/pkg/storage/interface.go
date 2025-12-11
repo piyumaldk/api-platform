@@ -93,6 +93,13 @@ type Storage interface {
 	// Implementations should index (name, version) for fast lookups.
 	GetConfigByNameVersion(name, version string) (*models.StoredConfig, error)
 
+	// GetConfigByIdentifier retrieves an API configuration by identifier.
+	//
+	// Returns an error if the configuration is not found.
+	// The identifier is the metadata.name from the API YAML configuration.
+	// This is the recommended lookup method for REST API endpoints.
+	GetConfigByIdentifier(identifier string) (*models.StoredConfig, error)
+
 	// GetAllConfigs retrieves all API configurations.
 	//
 	// Returns an empty slice if no configurations exist.

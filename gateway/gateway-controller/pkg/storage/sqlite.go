@@ -422,6 +422,60 @@ func (s *SQLiteStorage) GetConfigByNameVersion(name, version string) (*models.St
 	return &cfg, nil
 }
 
+// GetConfigByIdentifier retrieves a deployment configuration by identifier (metadata.name)
+func (s *SQLiteStorage) GetConfigByIdentifier(identifier string) (*models.StoredConfig, error) {
+	query := `
+		SELECT d.id, d.kind, dc.configuration, dc.source_configuration, d.status, d.created_at, d.updated_at,
+			   d.deployed_at, d.deployed_version
+		FROM deployments d
+		LEFT JOIN deployment_configs dc ON d.id = dc.id
+		WHERE d.identifier = ?
+	`
+
+	var cfg models.StoredConfig
+	var configJSON string
+	var sourceConfigJSON string
+	var deployedAt sql.NullTime
+
+	err := s.db.QueryRow(query, identifier).Scan(
+		&cfg.ID,
+		&cfg.Kind,
+		&configJSON,
+		&sourceConfigJSON,
+		&cfg.Status,
+		&cfg.CreatedAt,
+		&cfg.UpdatedAt,
+		&deployedAt,
+		&cfg.DeployedVersion,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%w: identifier=%s", ErrNotFound, identifier)
+		}
+		return nil, fmt.Errorf("failed to query configuration: %w", err)
+	}
+
+	// Parse deployed_at (nullable field)
+	if deployedAt.Valid {
+		cfg.DeployedAt = &deployedAt.Time
+	}
+
+	// Deserialize JSON configuration
+	if configJSON != "" {
+		if err := json.Unmarshal([]byte(configJSON), &cfg.Configuration); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal configuration: %w", err)
+		}
+	}
+	if sourceConfigJSON != "" {
+		if err := json.Unmarshal([]byte(sourceConfigJSON), &cfg.SourceConfiguration); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal source configuration: %w", err)
+		}
+	}
+
+	return &cfg, nil
+}
+
 // GetAllConfigs retrieves all deployment configurations
 func (s *SQLiteStorage) GetAllConfigs() ([]*models.StoredConfig, error) {
 	query := `
