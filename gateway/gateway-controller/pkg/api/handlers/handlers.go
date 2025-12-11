@@ -354,6 +354,20 @@ func (s *APIServer) UpdateAPI(c *gin.Context, identifier string) {
 		return
 	}
 
+	// Validate that the identifier in the YAML matches the path parameter
+	if apiConfig.Metadata != nil && apiConfig.Metadata.Name != "" {
+		if apiConfig.Metadata.Name != identifier {
+			log.Warn("Identifier mismatch between path and YAML metadata",
+				zap.String("path_identifier", identifier),
+				zap.String("yaml_identifier", apiConfig.Metadata.Name))
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("Identifier mismatch: path has '%s' but YAML metadata.name has '%s'", identifier, apiConfig.Metadata.Name),
+			})
+			return
+		}
+	}
+
 	// Validate configuration
 	validationErrors := s.validator.Validate(&apiConfig)
 	if len(validationErrors) > 0 {
@@ -1050,6 +1064,20 @@ func (s *APIServer) UpdateMCPProxy(c *gin.Context, identifier string) {
 			Message: "Failed to parse configuration",
 		})
 		return
+	}
+
+	// Validate that the identifier in the YAML matches the path parameter
+	if mcpConfig.Metadata != nil && mcpConfig.Metadata.Name != "" {
+		if mcpConfig.Metadata.Name != identifier {
+			log.Warn("Identifier mismatch between path and YAML metadata",
+				zap.String("path_identifier", identifier),
+				zap.String("yaml_identifier", mcpConfig.Metadata.Name))
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Status:  "error",
+				Message: fmt.Sprintf("Identifier mismatch: path has '%s' but YAML metadata.name has '%s'", identifier, mcpConfig.Metadata.Name),
+			})
+			return
+		}
 	}
 
 	mcpValidator := config.NewMCPValidator()

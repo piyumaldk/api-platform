@@ -149,14 +149,55 @@ func (s *SQLiteStorage) initSchema() error {
 		}
 
 		if version == 3 {
-			// Add identifier column to deployments table
-			if _, err := s.db.Exec(`ALTER TABLE deployments ADD COLUMN identifier TEXT;`); err != nil {
-				return fmt.Errorf("failed to migrate schema to version 4 (identifier column): %w", err)
+			// SQLite doesn't support adding NOT NULL columns directly
+			// Have to recreate the table
+			if _, err := s.db.Exec(`
+				CREATE TABLE deployments_new (
+					id TEXT PRIMARY KEY,
+					name TEXT NOT NULL,
+					version TEXT NOT NULL,
+					context TEXT NOT NULL,
+					kind TEXT NOT NULL,
+					identifier TEXT NOT NULL UNIQUE,
+					status TEXT NOT NULL CHECK(status IN ('pending', 'deployed', 'failed')),
+					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					deployed_at TIMESTAMP,
+					deployed_version INTEGER NOT NULL DEFAULT 0,
+					UNIQUE(name, version)
+				);
+			`); err != nil {
+				return fmt.Errorf("failed to create deployments_new table: %w", err)
+			}
+			if _, err := s.db.Exec(`
+				INSERT INTO deployments_new 
+				SELECT id, name, version, context, kind, name || '-' || version, status, created_at, updated_at, deployed_at, deployed_version 
+				FROM deployments;
+			`); err != nil {
+				return fmt.Errorf("failed to copy data to deployments_new: %w", err)
+			}
+			if _, err := s.db.Exec(`DROP TABLE deployments;`); err != nil {
+				return fmt.Errorf("failed to drop old deployments table: %w", err)
+			}
+			if _, err := s.db.Exec(`ALTER TABLE deployments_new RENAME TO deployments;`); err != nil {
+				return fmt.Errorf("failed to rename deployments_new to deployments: %w", err)
+			}
+			if _, err := s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_name_version ON deployments(name, version);`); err != nil {
+				return fmt.Errorf("failed to recreate idx_name_version: %w", err)
+			}
+			if _, err := s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_status ON deployments(status);`); err != nil {
+				return fmt.Errorf("failed to recreate idx_status: %w", err)
+			}
+			if _, err := s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_context ON deployments(context);`); err != nil {
+				return fmt.Errorf("failed to recreate idx_context: %w", err)
+			}
+			if _, err := s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_kind ON deployments(kind);`); err != nil {
+				return fmt.Errorf("failed to recreate idx_kind: %w", err)
 			}
 			if _, err := s.db.Exec("PRAGMA user_version = 4"); err != nil {
 				return fmt.Errorf("failed to set schema version to 4: %w", err)
 			}
-			s.logger.Info("Schema migrated to version 4 (identifier column)")
+			s.logger.Info("Schema migrated to version 4 (identifier column with NOT NULL UNIQUE constraint)")
 			version = 4
 		}
 
@@ -173,6 +214,10 @@ func (s *SQLiteStorage) SaveConfig(cfg *models.StoredConfig) error {
 	version := cfg.GetVersion()
 	context := cfg.GetContext()
 	identifier := cfg.GetIdentifier()
+
+	if identifier == "" {
+		return fmt.Errorf("identifier (metadata.name) is required and cannot be empty")
+	}
 
 	query := `
 		INSERT INTO deployments (
@@ -238,6 +283,10 @@ func (s *SQLiteStorage) UpdateConfig(cfg *models.StoredConfig) error {
 	version := cfg.GetVersion()
 	context := cfg.GetContext()
 	identifier := cfg.GetIdentifier()
+
+	if identifier == "" {
+		return fmt.Errorf("identifier (metadata.name) is required and cannot be empty")
+	}
 
 	query := `
 		UPDATE deployments
