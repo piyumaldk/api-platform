@@ -185,10 +185,17 @@ func (s *APIServer) CreateAPI(c *gin.Context) {
 
 	if err != nil {
 		log.Error("Failed to deploy API configuration", zap.Error(err))
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
+		if storage.IsConflictError(err) {
+			c.JSON(http.StatusConflict, api.ErrorResponse{
+				Status:  "error",
+				Message: err.Error(),
+			})
+		} else {
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Status:  "error",
+				Message: err.Error(),
+			})
+		}
 		return
 	}
 
@@ -953,10 +960,17 @@ func (s *APIServer) CreateMCPProxy(c *gin.Context) {
 
 	if err != nil {
 		log.Error("Failed to deploy MCP proxy configuration", zap.Error(err))
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
+		if storage.IsConflictError(err) {
+			c.JSON(http.StatusConflict, api.ErrorResponse{
+				Status:  "error",
+				Message: err.Error(),
+			})
+		} else {
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Status:  "error",
+				Message: err.Error(),
+			})
+		}
 		return
 	}
 
