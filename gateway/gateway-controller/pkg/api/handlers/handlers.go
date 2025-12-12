@@ -365,6 +365,18 @@ func (s *APIServer) GetAPIByHandle(c *gin.Context, handle string) {
 		return
 	}
 
+	if cfg.Kind != string(api.APIConfigurationKindHttprest) && cfg.Kind != string(api.APIConfigurationKindAsyncwebsub) {
+		log.Warn("Configuration kind mismatch",
+			zap.String("expected", "http/rest or async/websub"),
+			zap.String("actual", cfg.Kind),
+			zap.String("handle", handle))
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Configuration with handle '%s' is not an API", handle),
+		})
+		return
+	}
+
 	apiDetail := gin.H{
 		"id":            cfg.ID,
 		"configuration": cfg.Configuration,
@@ -1090,23 +1102,37 @@ func (s *APIServer) GetMCPProxyByHandle(c *gin.Context, handle string) {
 		return
 	}
 
-	mcpDetail := gin.H{
-		"status": "success",
-		"mcp": gin.H{
-			"id":            cfg.ID,
-			"configuration": cfg.SourceConfiguration,
-			"metadata": gin.H{
-				"status":     string(cfg.Status),
-				"created_at": cfg.CreatedAt.Format(time.RFC3339),
-				"updated_at": cfg.UpdatedAt.Format(time.RFC3339),
-			},
-		},
-	}
-	if cfg.DeployedAt != nil {
-		mcpDetail["mcp"].(gin.H)["metadata"].(gin.H)["deployed_at"] = cfg.DeployedAt.Format(time.RFC3339)
+	// Check deployment kind is MCP
+	if cfg.Kind != string(api.Mcp) {
+		log.Warn("Configuration kind mismatch",
+			zap.String("expected", string(api.Mcp)),
+			zap.String("actual", cfg.Kind),
+			zap.String("handle", handle))
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Status:  "error",
+			Message: fmt.Sprintf("Configuration with handle '%s' is not of kind MCP", handle),
+		})
+		return
 	}
 
-	c.JSON(http.StatusOK, mcpDetail)
+	mcpDetail := gin.H{
+		"id":            cfg.ID,
+		"configuration": cfg.Configuration,
+		"metadata": gin.H{
+			"status":     string(cfg.Status),
+			"created_at": cfg.CreatedAt.Format(time.RFC3339),
+			"updated_at": cfg.UpdatedAt.Format(time.RFC3339),
+		},
+	}
+
+	if cfg.DeployedAt != nil {
+		mcpDetail["metadata"].(gin.H)["deployed_at"] = cfg.DeployedAt.Format(time.RFC3339)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"mcp":    mcpDetail,
+	})
 }
 
 // UpdateMCPProxy implements ServerInterface.UpdateMCPProxy
