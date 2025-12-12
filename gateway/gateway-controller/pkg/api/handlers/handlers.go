@@ -232,7 +232,7 @@ func (s *APIServer) CreateAPI(c *gin.Context) {
 // ListAPIs implements ServerInterface.ListAPIs
 // (GET /apis)
 func (s *APIServer) ListAPIs(c *gin.Context) {
-	if c.Query("name") != "" || c.Query("version") != "" || c.Query("context") != "" || c.Query("identifier") != "" || c.Query("status") != "" {
+	if c.Query("name") != "" || c.Query("version") != "" || c.Query("context") != "" || c.Query("status") != "" {
 		s.SearchDeployments(c, string(api.APIConfigurationKindHttprest))
 		return
 	}
@@ -262,7 +262,7 @@ func (s *APIServer) ListAPIs(c *gin.Context) {
 }
 
 func (s *APIServer) SearchDeployments(c *gin.Context, kind string) {
-	filterKeys := []string{"name", "version", "context", "identifier", "status"}
+	filterKeys := []string{"name", "version", "context", "status"}
 	filters := make(map[string]string)
 	for _, k := range filterKeys {
 		if v := c.Query(k); v != "" {
@@ -282,9 +282,6 @@ func (s *APIServer) SearchDeployments(c *gin.Context, kind string) {
 				continue
 			}
 			if v, ok := filters["context"]; ok && cfg.GetContext() != v {
-				continue
-			}
-			if v, ok := filters["identifier"]; ok && cfg.GetIdentifier() != v {
 				continue
 			}
 			if v, ok := filters["status"]; ok && string(cfg.Status) != v {
@@ -996,7 +993,7 @@ func (s *APIServer) CreateMCPProxy(c *gin.Context) {
 // ListMCPProxies implements ServerInterface.ListMCPProxies
 // (GET /mcp-proxies)
 func (s *APIServer) ListMCPProxies(c *gin.Context) {
-	if c.Query("name") != "" || c.Query("version") != "" || c.Query("context") != "" || c.Query("identifier") != "" || c.Query("status") != "" {
+	if c.Query("name") != "" || c.Query("version") != "" || c.Query("context") != "" || c.Query("status") != "" {
 		s.SearchDeployments(c, string(api.Mcp))
 		return
 	}
