@@ -374,7 +374,7 @@ func (s *APIServer) GetAPIByHandle(c *gin.Context, handle string) {
 	}
 
 	apiDetail := gin.H{
-		"id":            cfg.ID,
+		"id":            cfg.GetHandle(),
 		"configuration": cfg.Configuration,
 		"metadata": gin.H{
 			"status":     string(cfg.Status),
@@ -1110,7 +1110,7 @@ func (s *APIServer) GetMCPProxyByHandle(c *gin.Context, handle string) {
 	}
 
 	mcpDetail := gin.H{
-		"id":            cfg.ID,
+		"id":            cfg.GetHandle(),
 		"configuration": cfg.Configuration,
 		"metadata": gin.H{
 			"status":     string(cfg.Status),
