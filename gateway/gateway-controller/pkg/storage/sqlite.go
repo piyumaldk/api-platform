@@ -158,7 +158,7 @@ func (s *SQLiteStorage) initSchema() error {
 					version TEXT NOT NULL,
 					context TEXT NOT NULL,
 					kind TEXT NOT NULL,
-					identifier TEXT NOT NULL UNIQUE,
+					handle TEXT NOT NULL UNIQUE,
 					status TEXT NOT NULL CHECK(status IN ('pending', 'deployed', 'failed')),
 					created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 					updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -171,7 +171,7 @@ func (s *SQLiteStorage) initSchema() error {
 			}
 			if _, err := s.db.Exec(`
 				INSERT INTO deployments_new 
-				SELECT id, name, version, context, kind, name || '-' || version, status, created_at, updated_at, deployed_at, deployed_version 
+				SELECT id, name, version, context, kind, name || '-' || version AS handle, status, created_at, updated_at, deployed_at, deployed_version 
 				FROM deployments;
 			`); err != nil {
 				return fmt.Errorf("failed to copy data to deployments_new: %w", err)
@@ -197,7 +197,7 @@ func (s *SQLiteStorage) initSchema() error {
 			if _, err := s.db.Exec("PRAGMA user_version = 4"); err != nil {
 				return fmt.Errorf("failed to set schema version to 4: %w", err)
 			}
-			s.logger.Info("Schema migrated to version 4 (identifier column with NOT NULL UNIQUE constraint)")
+			s.logger.Info("Schema migrated to version 4 (handle column with NOT NULL UNIQUE constraint)")
 			version = 4
 		}
 
@@ -213,15 +213,15 @@ func (s *SQLiteStorage) SaveConfig(cfg *models.StoredConfig) error {
 	name := cfg.GetName()
 	version := cfg.GetVersion()
 	context := cfg.GetContext()
-	identifier := cfg.GetIdentifier()
+	handle := cfg.GetHandle()
 
-	if identifier == "" {
-		return fmt.Errorf("identifier (metadata.name) is required and cannot be empty")
+	if handle == "" {
+		return fmt.Errorf("handle (metadata.name) is required and cannot be empty")
 	}
 
 	query := `
 		INSERT INTO deployments (
-			id, name, version, context, kind, identifier,
+			id, name, version, context, kind, handle,
 			status, created_at, updated_at, deployed_version
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
@@ -239,7 +239,7 @@ func (s *SQLiteStorage) SaveConfig(cfg *models.StoredConfig) error {
 		version,
 		context,
 		cfg.Kind,
-		identifier,
+		handle,
 		cfg.Status,
 		now,
 		now,
@@ -282,15 +282,15 @@ func (s *SQLiteStorage) UpdateConfig(cfg *models.StoredConfig) error {
 	name := cfg.GetName()
 	version := cfg.GetVersion()
 	context := cfg.GetContext()
-	identifier := cfg.GetIdentifier()
+	handle := cfg.GetHandle()
 
-	if identifier == "" {
-		return fmt.Errorf("identifier (metadata.name) is required and cannot be empty")
+	if handle == "" {
+		return fmt.Errorf("handle (metadata.name) is required and cannot be empty")
 	}
 
 	query := `
 		UPDATE deployments
-		SET name = ?, version = ?, context = ?, kind = ?, identifier = ?,
+		SET name = ?, version = ?, context = ?, kind = ?, handle = ?,
 			status = ?, updated_at = ?,
 			deployed_version = ?
 		WHERE id = ?
@@ -307,7 +307,7 @@ func (s *SQLiteStorage) UpdateConfig(cfg *models.StoredConfig) error {
 		version,
 		context,
 		cfg.Kind,
-		identifier,
+		handle,
 		cfg.Status,
 		time.Now(),
 		cfg.DeployedVersion,
@@ -471,14 +471,14 @@ func (s *SQLiteStorage) GetConfigByNameVersion(name, version string) (*models.St
 	return &cfg, nil
 }
 
-// GetConfigByIdentifier retrieves a deployment configuration by identifier (metadata.name)
-func (s *SQLiteStorage) GetConfigByIdentifier(identifier string) (*models.StoredConfig, error) {
+// GetConfigByHandle retrieves a deployment configuration by handle (metadata.name)
+func (s *SQLiteStorage) GetConfigByHandle(handle string) (*models.StoredConfig, error) {
 	query := `
 		SELECT d.id, d.kind, dc.configuration, dc.source_configuration, d.status, d.created_at, d.updated_at,
 			   d.deployed_at, d.deployed_version
 		FROM deployments d
 		LEFT JOIN deployment_configs dc ON d.id = dc.id
-		WHERE d.identifier = ?
+		WHERE d.handle = ?
 	`
 
 	var cfg models.StoredConfig
@@ -486,7 +486,7 @@ func (s *SQLiteStorage) GetConfigByIdentifier(identifier string) (*models.Stored
 	var sourceConfigJSON string
 	var deployedAt sql.NullTime
 
-	err := s.db.QueryRow(query, identifier).Scan(
+	err := s.db.QueryRow(query, handle).Scan(
 		&cfg.ID,
 		&cfg.Kind,
 		&configJSON,
@@ -500,7 +500,7 @@ func (s *SQLiteStorage) GetConfigByIdentifier(identifier string) (*models.Stored
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: identifier=%s", ErrNotFound, identifier)
+			return nil, fmt.Errorf("%w: handle=%s", ErrNotFound, handle)
 		}
 		return nil, fmt.Errorf("failed to query configuration: %w", err)
 	}

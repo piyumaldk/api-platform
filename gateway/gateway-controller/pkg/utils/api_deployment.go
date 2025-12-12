@@ -117,19 +117,19 @@ func (s *APIDeploymentService) DeployAPIConfiguration(params APIDeploymentParams
 		apiID = generateUUID()
 	}
 
-	var identifier string
+	var handle string
 	if apiConfig.Metadata != nil {
-		identifier = apiConfig.Metadata.Name
+		handle = apiConfig.Metadata.Name
 	}
 
 	if s.store != nil {
 		if _, err := s.store.GetByNameVersion(apiName, apiVersion); err == nil {
 			return nil, fmt.Errorf("%w: configuration with name '%s' and version '%s' already exists", storage.ErrConflict, apiName, apiVersion)
 		}
-		if identifier != "" {
+		if handle != "" {
 			for _, c := range s.store.GetAll() {
-				if c.GetIdentifier() == identifier {
-					return nil, fmt.Errorf("%w: configuration with identifier '%s' already exists", storage.ErrConflict, identifier)
+				if c.GetHandle() == handle {
+					return nil, fmt.Errorf("%w: configuration with handle '%s' already exists", storage.ErrConflict, handle)
 				}
 			}
 		}

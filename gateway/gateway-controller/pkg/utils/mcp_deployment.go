@@ -114,9 +114,9 @@ func (s *MCPDeploymentService) DeployMCPConfiguration(params MCPDeploymentParams
 	}
 	apiConfig = *apiConfigPtr
 
-	var identifier string
+	var handle string
 	if apiConfig.Metadata != nil {
-		identifier = apiConfig.Metadata.Name
+		handle = apiConfig.Metadata.Name
 	}
 
 	name, version, err := ExtractNameVersion(apiConfig)
@@ -130,10 +130,10 @@ func (s *MCPDeploymentService) DeployMCPConfiguration(params MCPDeploymentParams
 				return nil, fmt.Errorf("%w: configuration with name '%s' and version '%s' already exists", storage.ErrConflict, name, version)
 			}
 		}
-		if identifier != "" {
+		if handle != "" {
 			for _, c := range s.store.GetAll() {
-				if c.GetIdentifier() == identifier {
-					return nil, fmt.Errorf("%w: configuration with identifier '%s' already exists", storage.ErrConflict, identifier)
+				if c.GetHandle() == handle {
+					return nil, fmt.Errorf("%w: configuration with handle '%s' already exists", storage.ErrConflict, handle)
 				}
 			}
 		}
@@ -145,10 +145,10 @@ func (s *MCPDeploymentService) DeployMCPConfiguration(params MCPDeploymentParams
 				return nil, fmt.Errorf("%w: configuration with name '%s' and version '%s' already exists", storage.ErrConflict, name, version)
 			}
 		}
-		if identifier != "" {
+		if handle != "" {
 			for _, c := range s.store.GetAll() {
-				if c.GetIdentifier() == identifier {
-					return nil, fmt.Errorf("%w: configuration with identifier '%s' already exists", storage.ErrConflict, identifier)
+				if c.GetHandle() == handle {
+					return nil, fmt.Errorf("%w: configuration with handle '%s' already exists", storage.ErrConflict, handle)
 				}
 			}
 		}

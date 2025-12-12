@@ -243,14 +243,14 @@ func (s *APIServer) ListAPIs(c *gin.Context) {
 		id, _ := uuidToOpenAPIUUID(cfg.ID)
 		status := string(cfg.Status)
 		items = append(items, api.APIListItem{
-			Id:         id,
-			Identifier: stringPtr(cfg.GetIdentifier()),
-			Name:       stringPtr(cfg.GetName()),
-			Version:    stringPtr(cfg.GetVersion()),
-			Context:    stringPtr(cfg.GetContext()),
-			Status:     (*api.APIListItemStatus)(&status),
-			CreatedAt:  timePtr(cfg.CreatedAt),
-			UpdatedAt:  timePtr(cfg.UpdatedAt),
+			Id:        id,
+			Handle:    stringPtr(cfg.GetHandle()),
+			Name:      stringPtr(cfg.GetName()),
+			Version:   stringPtr(cfg.GetVersion()),
+			Context:   stringPtr(cfg.GetContext()),
+			Status:    (*api.APIListItemStatus)(&status),
+			CreatedAt: timePtr(cfg.CreatedAt),
+			UpdatedAt: timePtr(cfg.UpdatedAt),
 		})
 	}
 
@@ -291,14 +291,14 @@ func (s *APIServer) SearchDeployments(c *gin.Context, kind string) {
 			id, _ := uuidToOpenAPIUUID(cfg.ID)
 			status := string(cfg.Status)
 			items = append(items, api.APIListItem{
-				Id:         id,
-				Identifier: stringPtr(cfg.GetIdentifier()),
-				Name:       stringPtr(cfg.GetName()),
-				Version:    stringPtr(cfg.GetVersion()),
-				Context:    stringPtr(cfg.GetContext()),
-				Status:     (*api.APIListItemStatus)(&status),
-				CreatedAt:  timePtr(cfg.CreatedAt),
-				UpdatedAt:  timePtr(cfg.UpdatedAt),
+				Id:        id,
+				Handle:    stringPtr(cfg.GetHandle()),
+				Name:      stringPtr(cfg.GetName()),
+				Version:   stringPtr(cfg.GetVersion()),
+				Context:   stringPtr(cfg.GetContext()),
+				Status:    (*api.APIListItemStatus)(&status),
+				CreatedAt: timePtr(cfg.CreatedAt),
+				UpdatedAt: timePtr(cfg.UpdatedAt),
 			})
 		}
 	}
@@ -348,19 +348,19 @@ func (s *APIServer) GetAPIByNameVersion(c *gin.Context, name string, version str
 	})
 }
 
-// GetAPIByIdentifier implements ServerInterface.GetAPIByIdentifier
-// (GET /apis/{identifier})
-func (s *APIServer) GetAPIByIdentifier(c *gin.Context, identifier string) {
+// GetAPIByHandle implements ServerInterface.GetAPIByHandle
+// (GET /apis/{handle})
+func (s *APIServer) GetAPIByHandle(c *gin.Context, handle string) {
 	// Get correlation-aware logger from context
 	log := middleware.GetLogger(c, s.logger)
 
-	cfg, err := s.db.GetConfigByIdentifier(identifier)
+	cfg, err := s.db.GetConfigByHandle(handle)
 	if err != nil {
 		log.Warn("API configuration not found",
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("API configuration with identifier '%s' not found", identifier),
+			Message: fmt.Sprintf("API configuration with handle '%s' not found", handle),
 		})
 		return
 	}
@@ -386,8 +386,8 @@ func (s *APIServer) GetAPIByIdentifier(c *gin.Context, identifier string) {
 }
 
 // UpdateAPI implements ServerInterface.UpdateAPI
-// (PUT /apis/{identifier})
-func (s *APIServer) UpdateAPI(c *gin.Context, identifier string) {
+// (PUT /apis/{handle})
+func (s *APIServer) UpdateAPI(c *gin.Context, handle string) {
 	// Get correlation-aware logger from context
 	log := middleware.GetLogger(c, s.logger)
 
@@ -415,15 +415,15 @@ func (s *APIServer) UpdateAPI(c *gin.Context, identifier string) {
 		return
 	}
 
-	// Validate that the identifier in the YAML matches the path parameter
+	// Validate that the handle in the YAML matches the path parameter
 	if apiConfig.Metadata != nil && apiConfig.Metadata.Name != "" {
-		if apiConfig.Metadata.Name != identifier {
-			log.Warn("Identifier mismatch between path and YAML metadata",
-				zap.String("path_identifier", identifier),
-				zap.String("yaml_identifier", apiConfig.Metadata.Name))
+		if apiConfig.Metadata.Name != handle {
+			log.Warn("Handle mismatch between path and YAML metadata",
+				zap.String("path_handle", handle),
+				zap.String("yaml_handle", apiConfig.Metadata.Name))
 			c.JSON(http.StatusBadRequest, api.ErrorResponse{
 				Status:  "error",
-				Message: fmt.Sprintf("Identifier mismatch: path has '%s' but YAML metadata.name has '%s'", identifier, apiConfig.Metadata.Name),
+				Message: fmt.Sprintf("Handle mismatch: path has '%s' but YAML metadata.name has '%s'", handle, apiConfig.Metadata.Name),
 			})
 			return
 		}
@@ -433,7 +433,7 @@ func (s *APIServer) UpdateAPI(c *gin.Context, identifier string) {
 	validationErrors := s.validator.Validate(&apiConfig)
 	if len(validationErrors) > 0 {
 		log.Warn("Configuration validation failed",
-			zap.String("identifier", identifier),
+			zap.String("handle", handle),
 			zap.Int("num_errors", len(validationErrors)))
 
 		errors := make([]api.ValidationError, len(validationErrors))
@@ -453,13 +453,13 @@ func (s *APIServer) UpdateAPI(c *gin.Context, identifier string) {
 	}
 
 	// Check if config exists
-	existing, err := s.db.GetConfigByIdentifier(identifier)
+	existing, err := s.db.GetConfigByHandle(handle)
 	if err != nil {
 		log.Warn("API configuration not found",
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("API configuration with identifier '%s' not found", identifier),
+			Message: fmt.Sprintf("API configuration with handle '%s' not found", handle),
 		})
 		return
 	}
@@ -570,9 +570,9 @@ func (s *APIServer) UpdateAPI(c *gin.Context, identifier string) {
 	if err := s.store.Update(existing); err != nil {
 		// Log conflict errors at info level, other errors at error level
 		if storage.IsConflictError(err) {
-			log.Info("API configuration identifier already exists",
+			log.Info("API configuration handle already exists",
 				zap.String("id", existing.ID),
-				zap.String("identifier", identifier))
+				zap.String("handle", handle))
 		} else {
 			log.Error("Failed to update config in memory store", zap.Error(err))
 		}
@@ -598,7 +598,7 @@ func (s *APIServer) UpdateAPI(c *gin.Context, identifier string) {
 
 	log.Info("API configuration updated",
 		zap.String("id", existing.ID),
-		zap.String("identifier", identifier))
+		zap.String("handle", handle))
 
 	// Return success response
 	updateId, _ := uuidToOpenAPIUUID(existing.ID)
@@ -625,19 +625,19 @@ func (s *APIServer) UpdateAPI(c *gin.Context, identifier string) {
 }
 
 // DeleteAPI implements ServerInterface.DeleteAPI
-// (DELETE /apis/{identifier})
-func (s *APIServer) DeleteAPI(c *gin.Context, identifier string) {
+// (DELETE /apis/{handle})
+func (s *APIServer) DeleteAPI(c *gin.Context, handle string) {
 	// Get correlation-aware logger from context
 	log := middleware.GetLogger(c, s.logger)
 
 	// Check if config exists
-	cfg, err := s.db.GetConfigByIdentifier(identifier)
+	cfg, err := s.db.GetConfigByHandle(handle)
 	if err != nil {
 		log.Warn("API configuration not found",
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("API configuration with identifier '%s' not found", identifier),
+			Message: fmt.Sprintf("API configuration with handle '%s' not found", handle),
 		})
 		return
 	}
@@ -727,12 +727,12 @@ func (s *APIServer) DeleteAPI(c *gin.Context, identifier string) {
 
 	log.Info("API configuration deleted",
 		zap.String("id", cfg.ID),
-		zap.String("identifier", identifier))
+		zap.String("handle", handle))
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":     "success",
-		"message":    "API configuration deleted successfully",
-		"identifier": identifier,
+		"status":  "success",
+		"message": "API configuration deleted successfully",
+		"handle":  handle,
 	})
 
 	// Remove derived policy configuration
@@ -1018,14 +1018,14 @@ func (s *APIServer) ListMCPProxies(c *gin.Context) {
 			return
 		}
 		items[i] = api.MCPProxyListItem{
-			Id:         id,
-			Identifier: stringPtr(cfg.GetIdentifier()),
-			Name:       stringPtr(mcp.Spec.Name),
-			Version:    stringPtr(mcp.Spec.Version),
-			Context:    stringPtr(mcp.Spec.Context),
-			Status:     &status,
-			CreatedAt:  timePtr(cfg.CreatedAt),
-			UpdatedAt:  timePtr(cfg.UpdatedAt),
+			Id:        id,
+			Handle:    stringPtr(cfg.GetHandle()),
+			Name:      stringPtr(mcp.Spec.Name),
+			Version:   stringPtr(mcp.Spec.Version),
+			Context:   stringPtr(mcp.Spec.Context),
+			Status:    &status,
+			CreatedAt: timePtr(cfg.CreatedAt),
+			UpdatedAt: timePtr(cfg.UpdatedAt),
 		}
 	}
 
@@ -1073,19 +1073,19 @@ func (s *APIServer) GetMCPProxyByNameVersion(c *gin.Context, name string, versio
 	c.JSON(http.StatusOK, mcpDetail)
 }
 
-// GetMCPProxyByIdentifier implements ServerInterface.GetMCPProxyByIdentifier
-// (GET /mcp-proxies/{identifier})
-func (s *APIServer) GetMCPProxyByIdentifier(c *gin.Context, identifier string) {
+// GetMCPProxyByHandle implements ServerInterface.GetMCPProxyByHandle
+// (GET /mcp-proxies/{handle})
+func (s *APIServer) GetMCPProxyByHandle(c *gin.Context, handle string) {
 	// Get correlation-aware logger from context
 	log := middleware.GetLogger(c, s.logger)
 
-	cfg, err := s.db.GetConfigByIdentifier(identifier)
+	cfg, err := s.db.GetConfigByHandle(handle)
 	if err != nil {
 		log.Warn("MCP proxy configuration not found",
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("MCP proxy configuration with identifier '%s' not found", identifier),
+			Message: fmt.Sprintf("MCP proxy configuration with handle '%s' not found", handle),
 		})
 		return
 	}
@@ -1110,8 +1110,8 @@ func (s *APIServer) GetMCPProxyByIdentifier(c *gin.Context, identifier string) {
 }
 
 // UpdateMCPProxy implements ServerInterface.UpdateMCPProxy
-// (PUT /mcp-proxies/{identifier})
-func (s *APIServer) UpdateMCPProxy(c *gin.Context, identifier string) {
+// (PUT /mcp-proxies/{handle})
+func (s *APIServer) UpdateMCPProxy(c *gin.Context, handle string) {
 	// Get correlation-aware logger from context
 	log := middleware.GetLogger(c, s.logger)
 
@@ -1139,15 +1139,15 @@ func (s *APIServer) UpdateMCPProxy(c *gin.Context, identifier string) {
 		return
 	}
 
-	// Validate that the identifier in the YAML matches the path parameter
+	// Validate that the handle in the YAML matches the path parameter
 	if mcpConfig.Metadata != nil && mcpConfig.Metadata.Name != "" {
-		if mcpConfig.Metadata.Name != identifier {
-			log.Warn("Identifier mismatch between path and YAML metadata",
-				zap.String("path_identifier", identifier),
-				zap.String("yaml_identifier", mcpConfig.Metadata.Name))
+		if mcpConfig.Metadata.Name != handle {
+			log.Warn("Handle mismatch between path and YAML metadata",
+				zap.String("path_handle", handle),
+				zap.String("yaml_handle", mcpConfig.Metadata.Name))
 			c.JSON(http.StatusBadRequest, api.ErrorResponse{
 				Status:  "error",
-				Message: fmt.Sprintf("Identifier mismatch: path has '%s' but YAML metadata.name has '%s'", identifier, mcpConfig.Metadata.Name),
+				Message: fmt.Sprintf("Handle mismatch: path has '%s' but YAML metadata.name has '%s'", handle, mcpConfig.Metadata.Name),
 			})
 			return
 		}
@@ -1178,13 +1178,13 @@ func (s *APIServer) UpdateMCPProxy(c *gin.Context, identifier string) {
 	}
 
 	// Check if config exists
-	existing, err := s.db.GetConfigByIdentifier(identifier)
+	existing, err := s.db.GetConfigByHandle(handle)
 	if err != nil {
 		log.Warn("MCP configuration not found",
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("MCP configuration with identifier '%s' not found", identifier),
+			Message: fmt.Sprintf("MCP configuration with handle '%s' not found", handle),
 		})
 		return
 	}
@@ -1194,10 +1194,10 @@ func (s *APIServer) UpdateMCPProxy(c *gin.Context, identifier string) {
 		log.Warn("Configuration kind mismatch",
 			zap.String("expected", string(api.Mcp)),
 			zap.String("actual", existing.Kind),
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("Configuration with identifier '%s' is not of kind MCP", identifier),
+			Message: fmt.Sprintf("Configuration with handle '%s' is not of kind MCP", handle),
 		})
 		return
 	}
@@ -1208,7 +1208,7 @@ func (s *APIServer) UpdateMCPProxy(c *gin.Context, identifier string) {
 	transformedAPIConfig := transformer.Transform(&mcpConfig, &apiConfig)
 	if transformedAPIConfig == nil {
 		log.Error("Failed to transform MCP configuration to API configuration",
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to transform MCP configuration",
@@ -1271,7 +1271,7 @@ func (s *APIServer) UpdateMCPProxy(c *gin.Context, identifier string) {
 
 	log.Info("MCP configuration updated",
 		zap.String("id", existing.ID),
-		zap.String("identifier", identifier))
+		zap.String("handle", handle))
 
 	// Return success response
 	updateId, _ := uuidToOpenAPIUUID(existing.ID)
@@ -1298,19 +1298,19 @@ func (s *APIServer) UpdateMCPProxy(c *gin.Context, identifier string) {
 }
 
 // DeleteMCPProxy implements ServerInterface.DeleteMCPProxy
-// (DELETE /mcp-proxies/{identifier})
-func (s *APIServer) DeleteMCPProxy(c *gin.Context, identifier string) {
+// (DELETE /mcp-proxies/{handle})
+func (s *APIServer) DeleteMCPProxy(c *gin.Context, handle string) {
 	// Get correlation-aware logger from context
 	log := middleware.GetLogger(c, s.logger)
 
 	// Check if config exists
-	cfg, err := s.db.GetConfigByIdentifier(identifier)
+	cfg, err := s.db.GetConfigByHandle(handle)
 	if err != nil {
 		log.Warn("MCP proxy configuration not found",
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("MCP proxy configuration with identifier '%s' not found", identifier),
+			Message: fmt.Sprintf("MCP proxy configuration with handle '%s' not found", handle),
 		})
 		return
 	}
@@ -1320,10 +1320,10 @@ func (s *APIServer) DeleteMCPProxy(c *gin.Context, identifier string) {
 		log.Warn("Configuration kind mismatch",
 			zap.String("expected", string(api.Mcp)),
 			zap.String("actual", cfg.Kind),
-			zap.String("identifier", identifier))
+			zap.String("handle", handle))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Status:  "error",
-			Message: fmt.Sprintf("Configuration with identifier '%s' is not of kind MCP", identifier),
+			Message: fmt.Sprintf("Configuration with handle '%s' is not of kind MCP", handle),
 		})
 		return
 	}
@@ -1375,12 +1375,12 @@ func (s *APIServer) DeleteMCPProxy(c *gin.Context, identifier string) {
 
 	log.Info("MCP proxy configuration deleted",
 		zap.String("id", cfg.ID),
-		zap.String("identifier", identifier))
+		zap.String("handle", handle))
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":     "success",
-		"message":    "MCP proxy configuration deleted successfully",
-		"identifier": identifier,
+		"status":  "success",
+		"message": "MCP proxy configuration deleted successfully",
+		"handle":  handle,
 	})
 }
 

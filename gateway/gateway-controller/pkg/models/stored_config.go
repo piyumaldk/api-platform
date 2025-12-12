@@ -79,8 +79,8 @@ func (c *StoredConfig) GetName() string {
 	return configData.Name
 }
 
-// GetIdentifier returns the API identifier from metadata.name
-func (c *StoredConfig) GetIdentifier() string {
+// GetHandle returns the API handle from metadata.name
+func (c *StoredConfig) GetHandle() string {
 	if c.Configuration.Metadata != nil {
 		return c.Configuration.Metadata.Name
 	}

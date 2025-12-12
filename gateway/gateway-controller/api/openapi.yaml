@@ -216,15 +216,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /apis/{identifier}:
+  /apis/{handle}:
     get:
-      summary: Get API configuration by identifier
-      description: Retrieve the complete configuration for a specific API by its identifier (from metadata.name)
-      operationId: getAPIByIdentifier
+      summary: Get API configuration by handle
+      description: Retrieve the complete configuration for a specific API by its handle (from metadata.name)
+      operationId: getAPIByHandle
       tags:
         - API Management
       parameters:
-        - name: identifier
+        - name: handle
           in: path
           required: true
           description: Identifier of the API (metadata.name from YAML)
@@ -266,7 +266,7 @@ paths:
       tags:
         - API Management
       parameters:
-        - name: identifier
+        - name: handle
           in: path
           required: true
           description: Identifier of the API to update (metadata.name from YAML)
@@ -318,7 +318,7 @@ paths:
       tags:
         - API Management
       parameters:
-        - name: identifier
+        - name: handle
           in: path
           required: true
           description: Identifier of the API to delete (metadata.name from YAML)
@@ -613,15 +613,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /mcp-proxies/{identifier}:
+  /mcp-proxies/{handle}:
     get:
-      summary: Get MCP Proxy configuration by identifier
-      description: Retrieve the complete configuration for a specific MCP Proxy by its identifier (from metadata.name)
-      operationId: getMCPProxyByIdentifier
+      summary: Get MCP Proxy configuration by handle
+      description: Retrieve the complete configuration for a specific MCP Proxy by its handle (from metadata.name)
+      operationId: getMCPProxyByHandle
       tags:
         - MCP Proxy Management
       parameters:
-        - name: identifier
+        - name: handle
           in: path
           required: true
           description: Identifier of the MCP Proxy (metadata.name from YAML)
@@ -663,7 +663,7 @@ paths:
       tags:
         - MCP Proxy Management
       parameters:
-        - name: identifier
+        - name: handle
           in: path
           required: true
           description: Identifier of the MCP Proxy to update (metadata.name from YAML)
@@ -715,10 +715,10 @@ paths:
       tags:
         - MCP Proxy Management
       parameters:
-        - name: identifier
+        - name: handle
           in: path
           required: true
-          description: Identifier of the MCP Proxy to delete (metadata.name from YAML)
+          description: Handle of the MCP Proxy to delete (metadata.name from YAML)
           schema:
             type: string
           example: everything-mcp-v1.0
@@ -824,7 +824,7 @@ components:
       properties:
         name:
           type: string
-          description: Unique identifier for the resource
+          description: Unique handle for the resource
           example: weather-api-v1.0
 
     APIConfigData:
@@ -1236,7 +1236,7 @@ components:
           type: string
           format: uuid
           example: 550e8400-e29b-41d4-a716-446655440000
-        identifier:
+        handle:
           type: string
           example: weather-api-v1.0
         name:
@@ -1462,7 +1462,7 @@ components:
           type: string
           format: uuid
           example: 550e8400-e29b-41d4-a716-446655440000
-        identifier:
+        handle:
           type: string
           example: mcp-proxy-1-v1.0
         name:
