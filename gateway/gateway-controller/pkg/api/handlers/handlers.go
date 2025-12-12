@@ -240,11 +240,9 @@ func (s *APIServer) ListAPIs(c *gin.Context) {
 
 	items := make([]api.APIListItem, 0, len(configs))
 	for _, cfg := range configs {
-		id, _ := uuidToOpenAPIUUID(cfg.ID)
 		status := string(cfg.Status)
 		items = append(items, api.APIListItem{
-			Id:        id,
-			Handle:    stringPtr(cfg.GetHandle()),
+			Id:        stringPtr(cfg.GetHandle()),
 			Name:      stringPtr(cfg.GetName()),
 			Version:   stringPtr(cfg.GetVersion()),
 			Context:   stringPtr(cfg.GetContext()),
@@ -288,11 +286,9 @@ func (s *APIServer) SearchDeployments(c *gin.Context, kind string) {
 				continue
 			}
 
-			id, _ := uuidToOpenAPIUUID(cfg.ID)
 			status := string(cfg.Status)
 			items = append(items, api.APIListItem{
-				Id:        id,
-				Handle:    stringPtr(cfg.GetHandle()),
+				Id:        stringPtr(cfg.GetHandle()),
 				Name:      stringPtr(cfg.GetName()),
 				Version:   stringPtr(cfg.GetVersion()),
 				Context:   stringPtr(cfg.GetContext()),
@@ -1013,7 +1009,6 @@ func (s *APIServer) ListMCPProxies(c *gin.Context) {
 
 	items := make([]api.MCPProxyListItem, len(configs))
 	for i, cfg := range configs {
-		id, _ := uuidToOpenAPIUUID(cfg.ID)
 		status := api.MCPProxyListItemStatus(cfg.Status)
 		// Convert SourceConfiguration to MCPProxyConfiguration
 		var mcp api.MCPProxyConfiguration
@@ -1030,8 +1025,7 @@ func (s *APIServer) ListMCPProxies(c *gin.Context) {
 			return
 		}
 		items[i] = api.MCPProxyListItem{
-			Id:        id,
-			Handle:    stringPtr(cfg.GetHandle()),
+			Id:        stringPtr(cfg.GetHandle()),
 			Name:      stringPtr(mcp.Spec.Name),
 			Version:   stringPtr(mcp.Spec.Version),
 			Context:   stringPtr(mcp.Spec.Context),

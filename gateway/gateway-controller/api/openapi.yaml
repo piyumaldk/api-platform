@@ -1234,10 +1234,6 @@ components:
       properties:
         id:
           type: string
-          format: uuid
-          example: 550e8400-e29b-41d4-a716-446655440000
-        handle:
-          type: string
           example: weather-api-v1.0
         name:
           type: string
@@ -1459,10 +1455,6 @@ components:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
-          example: 550e8400-e29b-41d4-a716-446655440000
-        handle:
           type: string
           example: mcp-proxy-1-v1.0
         name:
