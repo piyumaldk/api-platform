@@ -7,10 +7,6 @@ on:
         description: 'Release version (format: x.x.x)'
         required: true
         type: string
-      release_notes:
-        description: 'Release notes (supports Markdown formatting)'
-        required: true
-        type: text
 
 jobs:
   validate-and-build:
@@ -39,6 +35,7 @@ jobs:
       
       - name: Cache Go modules
         uses: actions/cache@v4
+        continue-on-error: true
         with:
           path: |
             ~/.cache/go-build
@@ -79,10 +76,6 @@ jobs:
           tag_name: apipctl-v${{ github.event.inputs.version }}
           name: APIPCTL v${{ github.event.inputs.version }}
           body: |
-            ${{ github.event.inputs.release_notes }}
-
-            ---
-            
             ## Downloads
             
             Choose the appropriate binary for your platform:
