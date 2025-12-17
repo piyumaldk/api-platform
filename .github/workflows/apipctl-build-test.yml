@@ -1,18 +1,6 @@
 name: APIPCTL Build Test
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'cli/**'
-  pull_request:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'cli/**'
   workflow_dispatch:
 
 jobs:
