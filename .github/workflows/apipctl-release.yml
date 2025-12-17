@@ -8,9 +8,9 @@ on:
         required: true
         type: string
       release_notes:
-        description: 'Release notes'
+        description: 'Release notes (supports Markdown formatting)'
         required: true
-        type: string
+        type: text
 
 jobs:
   validate-and-build:
